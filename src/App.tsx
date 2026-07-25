@@ -1,63 +1,58 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Member, TeamResult } from './types';
 import { generateTeamResult } from './utils/teamGenerator';
-import {
-  createMember,
-  loadMembers,
-  loadSelectedMemberIds,
-  saveMembers,
-  saveSelectedMemberIds,
-} from './utils/storage';
+import { createMember, subscribeToSession, updateSession, type SessionState } from './utils/session';
 import Header from './components/Header';
 import MemberSelection from './components/MemberSelection';
 import TeamGenerator from './components/TeamGenerator';
 import ResultView from './components/ResultView';
 import './App.css';
 
-type Phase = 'selection' | 'result';
-
 function App() {
-  const [members, setMembers] = useState<Member[]>(() => loadMembers());
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => {
-    const stored = loadSelectedMemberIds();
-    const validIds = new Set(loadMembers().map((m) => m.id));
-    return new Set(stored.filter((id) => validIds.has(id)));
-  });
-  const [phase, setPhase] = useState<Phase>('selection');
-  const [result, setResult] = useState<TeamResult | null>(null);
+  const [session, setSession] = useState<SessionState | null>(null);
 
   useEffect(() => {
-    saveMembers(members);
-  }, [members]);
+    const unsubscribe = subscribeToSession(setSession);
+    return unsubscribe;
+  }, []);
 
-  useEffect(() => {
-    saveSelectedMemberIds([...selectedIds]);
-  }, [selectedIds]);
+  const members = session?.members ?? [];
+  const selectedIds = useMemo(() => new Set(session?.selectedMemberIds ?? []), [session]);
 
   const selectedMembers = useMemo(
     () => members.filter((m) => selectedIds.has(m.id)),
     [members, selectedIds],
   );
 
+  if (!session) {
+    return (
+      <div className="app">
+        <Header />
+        <main className="app-main">
+          <p className="loading-message">読み込み中...</p>
+        </main>
+      </div>
+    );
+  }
+
   const toggleMember = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    updateSession({ selectedMemberIds: [...next] });
   };
 
-  const selectAll = () => setSelectedIds(new Set(members.map((m) => m.id)));
-  const deselectAll = () => setSelectedIds(new Set());
+  const selectAll = () => updateSession({ selectedMemberIds: members.map((m) => m.id) });
+  const deselectAll = () => updateSession({ selectedMemberIds: [] });
 
   const addMember = (name: string) => {
     const member = createMember(name);
-    setMembers((prev) => [...prev, member]);
-    setSelectedIds((prev) => new Set(prev).add(member.id));
+    updateSession({
+      members: [...members, member],
+      selectedMemberIds: [...selectedIds, member.id],
+    });
   };
 
   const renameMember = (id: string, newName: string): string | null => {
@@ -65,35 +60,36 @@ function App() {
     if (duplicate) {
       return '同じ名前のメンバーが登録されています';
     }
-    setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, name: newName } : m)));
+    updateSession({
+      members: members.map((m) => (m.id === id ? { ...m, name: newName } : m)),
+    });
     return null;
   };
 
   const deleteMember = (id: string) => {
-    setMembers((prev) => prev.filter((m) => m.id !== id));
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
+    const next = new Set(selectedIds);
+    next.delete(id);
+    updateSession({
+      members: members.filter((m) => m.id !== id),
+      selectedMemberIds: [...next],
     });
   };
 
   const generateTeams = () => {
     if (selectedMembers.length < 4) return;
-    setResult(generateTeamResult(selectedMembers));
-    setPhase('result');
+    updateSession({ result: generateTeamResult(selectedMembers), phase: 'result' });
   };
 
   const reshuffle = () => {
     if (selectedMembers.length < 4) return;
-    setResult(generateTeamResult(selectedMembers));
+    updateSession({ result: generateTeamResult(selectedMembers) });
   };
 
   return (
     <div className="app">
       <Header />
       <main className="app-main">
-        {phase === 'selection' ? (
+        {session.phase === 'selection' ? (
           <>
             <MemberSelection
               members={members}
@@ -108,11 +104,11 @@ function App() {
             <TeamGenerator participantCount={selectedMembers.length} onGenerate={generateTeams} />
           </>
         ) : (
-          result && (
+          session.result && (
             <ResultView
-              result={result}
+              result={session.result}
               onReshuffle={reshuffle}
-              onChangeParticipants={() => setPhase('selection')}
+              onChangeParticipants={() => updateSession({ phase: 'selection' })}
             />
           )
         )}

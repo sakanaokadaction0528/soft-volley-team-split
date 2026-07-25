@@ -1,0 +1,23 @@
+import type { ReactNode } from 'react';
+
+type Props = {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+};
+
+export default function Modal({ title, onClose, children }: Props) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>{title}</h2>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="閉じる">
+            ×
+          </button>
+        </div>
+        <div className="modal-body">{children}</div>
+      </div>
+    </div>
+  );
+}

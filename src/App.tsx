@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { generateTeamResult } from './utils/teamGenerator';
+import { generateTeamResult, validateFixedTeams } from './utils/teamGenerator';
 import { createMember, subscribeToSession, updateSession, type SessionState } from './utils/session';
 import Header from './components/Header';
 import MemberSelection from './components/MemberSelection';
@@ -22,6 +22,8 @@ function App() {
     () => members.filter((m) => selectedIds.has(m.id)),
     [members, selectedIds],
   );
+
+  const fixedTeamError = useMemo(() => validateFixedTeams(selectedMembers), [selectedMembers]);
 
   if (!session) {
     return (
@@ -75,13 +77,25 @@ function App() {
     });
   };
 
+  const setFixedTeam = (id: string, fixedTeam: number | null) => {
+    updateSession({
+      members: members.map((m) => (m.id === id ? { ...m, fixedTeam } : m)),
+    });
+  };
+
+  const setLevel = (id: string, level: number | null) => {
+    updateSession({
+      members: members.map((m) => (m.id === id ? { ...m, level } : m)),
+    });
+  };
+
   const generateTeams = () => {
-    if (selectedMembers.length < 4) return;
+    if (selectedMembers.length < 4 || fixedTeamError) return;
     updateSession({ result: generateTeamResult(selectedMembers), phase: 'result' });
   };
 
   const reshuffle = () => {
-    if (selectedMembers.length < 4) return;
+    if (selectedMembers.length < 4 || fixedTeamError) return;
     updateSession({ result: generateTeamResult(selectedMembers) });
   };
 
@@ -100,8 +114,14 @@ function App() {
               onAddMember={addMember}
               onRenameMember={renameMember}
               onDeleteMember={deleteMember}
+              onSetFixedTeam={setFixedTeam}
+              onSetLevel={setLevel}
             />
-            <TeamGenerator participantCount={selectedMembers.length} onGenerate={generateTeams} />
+            <TeamGenerator
+              participantCount={selectedMembers.length}
+              errorMessage={fixedTeamError}
+              onGenerate={generateTeams}
+            />
           </>
         ) : (
           session.result && (

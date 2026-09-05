@@ -13,6 +13,8 @@ type Props = {
   onAddMember: (name: string) => void;
   onRenameMember: (id: string, name: string) => string | null;
   onDeleteMember: (id: string) => void;
+  onSetFixedTeam: (id: string, fixedTeam: number | null) => void;
+  onSetLevel: (id: string, level: number | null) => void;
 };
 
 export default function MemberSelection({
@@ -24,6 +26,8 @@ export default function MemberSelection({
   onAddMember,
   onRenameMember,
   onDeleteMember,
+  onSetFixedTeam,
+  onSetLevel,
 }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [showManagement, setShowManagement] = useState(false);
@@ -44,7 +48,12 @@ export default function MemberSelection({
         </button>
       </div>
 
-      <MemberList members={members} selectedIds={selectedIds} onToggle={onToggle} />
+      <MemberList
+        members={members}
+        selectedIds={selectedIds}
+        onToggle={onToggle}
+        onSetFixedTeam={onSetFixedTeam}
+      />
 
       <div className="member-actions">
         <button type="button" className="btn btn-secondary" onClick={() => setShowForm(true)}>
@@ -68,6 +77,7 @@ export default function MemberSelection({
           members={members}
           onRename={onRenameMember}
           onDelete={onDeleteMember}
+          onSetLevel={onSetLevel}
           onClose={() => setShowManagement(false)}
         />
       )}

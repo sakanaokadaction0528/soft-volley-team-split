@@ -38,7 +38,7 @@ export function createId(): string {
 }
 
 export function createMember(name: string): Member {
-  return { id: createId(), name };
+  return { id: createId(), name, fixedTeam: null, level: null };
 }
 
 function createInitialSessionState(): SessionState {

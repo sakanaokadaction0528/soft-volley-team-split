@@ -2,14 +2,23 @@ import { useState } from 'react';
 import type { Member } from '../types';
 import Modal from './Modal';
 
+const LEVELS = [1, 2, 3, 4, 5];
+
 type Props = {
   members: Member[];
   onRename: (id: string, newName: string) => string | null;
   onDelete: (id: string) => void;
+  onSetLevel: (id: string, level: number | null) => void;
   onClose: () => void;
 };
 
-export default function MemberManagement({ members, onRename, onDelete, onClose }: Props) {
+export default function MemberManagement({
+  members,
+  onRename,
+  onDelete,
+  onSetLevel,
+  onClose,
+}: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
   const [editError, setEditError] = useState('');
@@ -72,18 +81,44 @@ export default function MemberManagement({ members, onRename, onDelete, onClose 
                 </div>
               ) : (
                 <>
-                  <span className="management-name">{member.name}</span>
-                  <div className="management-actions">
-                    <button type="button" className="btn btn-outline btn-sm" onClick={() => startEdit(member)}>
-                      名前変更
-                    </button>
+                  <div className="management-row-top">
+                    <span className="management-name">{member.name}</span>
+                    <div className="management-actions">
+                      <button type="button" className="btn btn-outline btn-sm" onClick={() => startEdit(member)}>
+                        名前変更
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        onClick={() => setDeleteTarget(member)}
+                      >
+                        削除
+                      </button>
+                    </div>
+                  </div>
+                  <div className="level-picker">
+                    <span className="level-picker-label">クラス</span>
                     <button
                       type="button"
-                      className="btn btn-danger btn-sm"
-                      onClick={() => setDeleteTarget(member)}
+                      className={`level-btn level-btn-none${
+                        member.level == null ? ' level-btn-active' : ''
+                      }`}
+                      onClick={() => onSetLevel(member.id, null)}
                     >
-                      削除
+                      未設定
                     </button>
+                    {LEVELS.map((lv) => (
+                      <button
+                        key={lv}
+                        type="button"
+                        className={`level-btn level-btn-${lv}${
+                          member.level === lv ? ' level-btn-active' : ''
+                        }`}
+                        onClick={() => onSetLevel(member.id, lv)}
+                      >
+                        {lv}
+                      </button>
+                    ))}
                   </div>
                 </>
               )}

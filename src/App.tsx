@@ -47,7 +47,11 @@ function App() {
   };
 
   const selectAll = () => updateSession({ selectedMemberIds: members.map((m) => m.id) });
-  const deselectAll = () => updateSession({ selectedMemberIds: [] });
+  const deselectAll = () =>
+    updateSession({
+      selectedMemberIds: [],
+      members: members.map((m) => ({ ...m, fixedTeam: null })),
+    });
 
   const addMember = (name: string) => {
     const member = createMember(name);

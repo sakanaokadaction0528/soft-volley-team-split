@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { Member } from '../types';
 
 type Props = {
@@ -8,6 +9,16 @@ type Props = {
 };
 
 export default function MemberList({ members, selectedIds, onToggle, onSetFixedTeam }: Props) {
+  // チェック済みのメンバーが上部に来るように並べ替える(それぞれのグループ内の順序は維持)
+  const sortedMembers = useMemo(() => {
+    const checked: Member[] = [];
+    const unchecked: Member[] = [];
+    for (const member of members) {
+      (selectedIds.has(member.id) ? checked : unchecked).push(member);
+    }
+    return [...checked, ...unchecked];
+  }, [members, selectedIds]);
+
   if (members.length === 0) {
     return (
       <p className="empty-message">
@@ -18,7 +29,7 @@ export default function MemberList({ members, selectedIds, onToggle, onSetFixedT
 
   return (
     <ul className="member-list">
-      {members.map((member) => (
+      {sortedMembers.map((member) => (
         <li key={member.id} className="member-row">
           <label className="member-checkbox-label">
             <input
